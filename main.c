@@ -34,8 +34,13 @@ APTR SystemIrq;
 
 struct View *ActiView;
 
+#define BG_SIZE ((320 / 8) * 256 * 5) // 51,200 bytes
+UBYTE *screen_buffer = NULL;		  // Active display buffer
+
 // DEMO - INCBIN
 volatile short frameCounter = 0;
+INCBIN(colors, "pal/pacman_tiles.pal")
+INCBIN_CHIP(pacman_tiles, "bpl/pacman_tiles.bpl")
 
 // put copperlist into chip mem so we can use it without copying
 const UWORD copper2[] __attribute__((section(".MEMF_CHIP"))) = {
@@ -161,6 +166,53 @@ static void teardownEnvironment(void)
 	}
 }
 
+static USHORT *setupCopper(void)
+{
+	USHORT *copper1 = (USHORT *)AllocMem(1024, MEMF_CHIP);
+	USHORT *copPtr = copper1;
+	// Allocate the active screen buffer and copy the clean background into it
+	screen_buffer = (UBYTE *)AllocMem(BG_SIZE, MEMF_CHIP | MEMF_CLEAR); // Clear memory so it doesn't show garbage
+
+	copPtr = screenScanDefault(copPtr);
+
+	// enable bitplanes
+	*copPtr++ = offsetof(struct Custom, bplcon0);
+	*copPtr++ = (0 << 10) /*dual pf*/ | (1 << 9) /*color*/ | ((5) << 12) /*num bitplanes*/;
+	*copPtr++ = offsetof(struct Custom, bplcon1); // scrolling
+	*copPtr++ = 0;
+	*copPtr++ = offsetof(struct Custom, bplcon2); // playfied priority
+	*copPtr++ = 1 << 6;							  // 0x24;			//Sprites have priority over playfields
+
+	const USHORT lineSize = 320 / 8;
+
+	// set bitplane modulo
+	*copPtr++ = offsetof(struct Custom, bpl1mod); // odd planes   1,3,5
+	*copPtr++ = 4 * lineSize;
+	*copPtr++ = offsetof(struct Custom, bpl2mod); // even  planes 2,4
+	*copPtr++ = 4 * lineSize;
+
+	// set bitplane pointers
+	const UBYTE *planes[5];
+	for (int a = 0; a < 5; a++)
+		planes[a] = screen_buffer + lineSize * a;
+	copPtr = copSetPlanes(0, copPtr, planes, 5); // INJECT pointers into copper list!
+
+	// set colors
+	for (int a = 0; a < 32; a++)
+		copPtr = copSetColor(copPtr, a, ((USHORT *)colors)[a]);
+
+	// jump to copper2
+	*copPtr++ = offsetof(struct Custom, copjmp2);
+	*copPtr++ = 0x7fff;
+
+	custom->cop1lc = (ULONG)copper1;
+	custom->cop2lc = (ULONG)copper2;
+	custom->dmacon = DMAF_BLITTER; // disable blitter dma for copjmp bug
+	custom->copjmp1 = 0x7fff;	   // start coppper
+
+	return copper1;
+}
+
 int main()
 {
 	setupEnvironment();
@@ -172,22 +224,7 @@ int main()
 	warpmode(0);
 	WaitVbl();
 
-	USHORT *copper1 = (USHORT *)AllocMem(1024, MEMF_CHIP);
-	USHORT *copPtr = copper1;
-
-	copPtr = screenScanDefault(copPtr);
-	// setup bitplane control (0 bitplanes since we just want the background color)
-	*copPtr++ = offsetof(struct Custom, bplcon0);
-	*copPtr++ = (0 << 10) /*dual pf*/ | (1 << 9) /*color*/ | ((0) << 12) /*num bitplanes*/;
-
-	// jump to copper2
-	*copPtr++ = offsetof(struct Custom, copjmp2);
-	*copPtr++ = 0x7fff;
-
-	custom->cop1lc = (ULONG)copper1;
-	custom->cop2lc = (ULONG)copper2;
-	custom->dmacon = DMAF_BLITTER; // disable blitter dma for copjmp bug
-	custom->copjmp1 = 0x7fff;	   // start coppper
+	USHORT *copper1 = setupCopper();
 
 	systemSetDmaMask(DMAF_MASTER | DMAF_RASTER | DMAF_COPPER | DMAF_BLITTER, 1); // Tell ACE to enable DMA
 
