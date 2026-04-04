@@ -4,12 +4,12 @@
 
 USHORT *copSetPlanes(UBYTE bplPtrStart, USHORT *copListEnd, const UBYTE **planes, int numPlanes)
 {
-    for (USHORT i = 0; i < numPlanes; i++)
+    for (int i = 0; i < numPlanes; i++)
     {
         ULONG addr = (ULONG)planes[i];
-        *copListEnd++ = offsetof(struct Custom, bplpt[0]) + (i + bplPtrStart) * sizeof(APTR);
+        *copListEnd++ = (USHORT)(offsetof(struct Custom, bplpt[0]) + (i + bplPtrStart) * sizeof(APTR));
         *copListEnd++ = (UWORD)(addr >> 16);
-        *copListEnd++ = offsetof(struct Custom, bplpt[0]) + (i + bplPtrStart) * sizeof(APTR) + 2;
+        *copListEnd++ = (USHORT)(offsetof(struct Custom, bplpt[0]) + (i + bplPtrStart) * sizeof(APTR) + 2);
         *copListEnd++ = (UWORD)addr;
     }
     return copListEnd;
@@ -17,21 +17,21 @@ USHORT *copSetPlanes(UBYTE bplPtrStart, USHORT *copListEnd, const UBYTE **planes
 
 USHORT *copWaitXY(USHORT *copListEnd, USHORT x, USHORT i)
 {
-    *copListEnd++ = (i << 8) | (x << 1) | 1; // bit 1 means wait. waits for vertical position x<<8, first raster stop position outside the left
+    *copListEnd++ = (USHORT)((i << 8) | (x << 1) | 1); // bit 1 means wait. waits for vertical position x<<8, first raster stop position outside the left
     *copListEnd++ = 0xfffe;
     return copListEnd;
 }
 
 USHORT *copWaitY(USHORT *copListEnd, USHORT i)
 {
-    *copListEnd++ = (i << 8) | 4 | 1; // bit 1 means wait. waits for vertical position x<<8, first raster stop position outside the left
+    *copListEnd++ = (USHORT)((i << 8) | 4 | 1); // bit 1 means wait. waits for vertical position x<<8, first raster stop position outside the left
     *copListEnd++ = 0xfffe;
     return copListEnd;
 }
 
 USHORT *copSetColor(USHORT *copListCurrent, USHORT index, USHORT color)
 {
-    *copListCurrent++ = offsetof(struct Custom, color) + sizeof(UWORD) * index;
+    *copListCurrent++ = (USHORT)(offsetof(struct Custom, color) + sizeof(UWORD) * index);
     *copListCurrent++ = color;
     return copListCurrent;
 }

@@ -25,7 +25,7 @@ int p61Init(const void *mod)
     return _d0;
 }
 
-void p61Music()
+void p61Music(void)
 {
     register volatile const void *_a3 ASM("a3") = player;
     register volatile const void *_a6 ASM("a6") = (void *)0xdff000;
@@ -38,7 +38,7 @@ void p61Music()
         : "cc", "memory");
 }
 
-void p61End()
+void p61End(void)
 {
     register volatile const void *_a3 ASM("a3") = player;
     register volatile const void *_a6 ASM("a6") = (void *)0xdff000;

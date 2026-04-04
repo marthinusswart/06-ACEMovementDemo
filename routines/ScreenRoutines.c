@@ -24,14 +24,14 @@ void SetInterruptHandler(APTR interrupt)
     *(volatile APTR *)(((UBYTE *)VBR) + 0x6c) = interrupt;
 }
 
-APTR GetInterruptHandler()
+APTR GetInterruptHandler(void)
 {
     return *(volatile APTR *)(((UBYTE *)VBR) + 0x6c);
 }
 
 // vblank begins at vpos 312 hpos 1 and ends at vpos 25 hpos 1
 // vsync begins at line 2 hpos 132 and ends at vpos 5 hpos 18
-void WaitVbl()
+void WaitVbl(void)
 {
     debug_start_idle();
     while (1)
@@ -61,7 +61,7 @@ void WaitLine(USHORT line)
     }
 }
 
-void WaitBlt()
+void WaitBlt(void)
 {
     UWORD tst = *(volatile UWORD *)&custom->dmaconr; // for compatiblity a1000
     (void)tst;

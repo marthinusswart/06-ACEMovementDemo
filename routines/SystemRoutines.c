@@ -16,7 +16,7 @@ extern UWORD SystemADKCON;
 extern APTR SystemIrq;
 extern volatile APTR VBR;
 
-void TakeSystem()
+void TakeSystem(void)
 {
     Forbid();
     // Save current interrupts and DMA settings so we can restore them upon exit.
@@ -33,7 +33,7 @@ void TakeSystem()
     WaitVbl();
 
     OwnBlitter();
-    WaitBlit();
+    WaitBlt();
     Disable();
 
     custom->intena = 0x7fff; // disable all interrupts
@@ -52,10 +52,10 @@ void TakeSystem()
     SystemIrq = GetInterruptHandler(); // store interrupt register
 }
 
-void FreeSystem()
+void FreeSystem(void)
 {
     WaitVbl();
-    WaitBlit();
+    WaitBlt();
     custom->intena = 0x7fff; // disable all interrupts
     custom->intreq = 0x7fff; // Clear any interrupts that were pending
     custom->dmacon = 0x7fff; // Clear all DMA channels
@@ -73,7 +73,7 @@ void FreeSystem()
     custom->dmacon = SystemDMA | 0x8000;
     custom->adkcon = SystemADKCON | 0x8000;
 
-    WaitBlit();
+    WaitBlt();
     DisownBlitter();
     Enable();
 
