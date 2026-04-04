@@ -14,6 +14,8 @@
 #include "routines/MouseRoutines.h"
 #include "routines/MusicRoutines.h"
 #include "routines/CopperRoutines.h"
+#include <ace/managers/system.h>
+#include <ace/managers/key.h>
 
 // config
 #define MUSIC
@@ -56,11 +58,8 @@ const UWORD copper2[] __attribute__((section(".MEMF_CHIP"))) = {
 	0xffff, 0xfffe											   // end copper list
 };
 
-static __attribute__((interrupt)) void interruptHandler()
+static void vblankHandler(volatile struct Custom *pCustom, volatile void *pData)
 {
-	custom->intreq = (1 << INTB_VERTB);
-	custom->intreq = (1 << INTB_VERTB); // reset vbl req. twice for a4000 bug.
-
 #ifdef MUSIC
 	// DEMO - ThePlayer
 	p61Music();
@@ -94,38 +93,83 @@ static void Wait11() { WaitLine(0x11); }
 static void Wait12() { WaitLine(0x12); }
 static void Wait13() { WaitLine(0x13); }
 
-int main()
+static void setupEnvironment(void)
 {
 	SysBase = *((struct ExecBase **)4UL);
 	custom = (struct Custom *)0xdff000;
 
-	// We will use the graphics library only to locate and restore the system copper list once we are through.
-	GfxBase = (struct GfxBase *)OpenLibrary((CONST_STRPTR) "graphics.library", 0);
-	if (!GfxBase)
-		Exit(0);
-
-	// used for printing
 	DOSBase = (struct DosLibrary *)OpenLibrary((CONST_STRPTR) "dos.library", 0);
-	if (!DOSBase)
-		Exit(0);
+	GfxBase = (struct GfxBase *)OpenLibrary((CONST_STRPTR) "graphics.library", 0);
 
 #ifdef __cplusplus
 	KPrintF("Hello debugger from Amiga: %ld!\n", staticClass.i);
 #else
 	KPrintF("Hello debugger from Amiga!\n");
 #endif
-	Write(Output(), (APTR) "Hello console!\n", 15);
-	Delay(50);
+
+	if (DOSBase)
+	{
+		Write(Output(), (APTR) "Hello console!\n", 15);
+		Delay(50); // This requires the OS timer.device to be alive!
+	}
+
+	// ACE's system.c comments claim to save ADKCON, but actually forgets to!
+	// We must back it up manually to ensure disk drives and audio return to normal.
+	SystemADKCON = custom->adkconr;
+	SystemInts = custom->intenar;
+	SystemDMA = custom->dmaconr;
+
+	systemCreate(); // Seize the system BEFORE p61Init pollutes the hardware registers
+	systemUnuse();	// Fully suspend the OS so it stops overwriting the copper list
 
 	warpmode(1);
+}
+
+static void teardownEnvironment(void)
+{
+	KPrintF("Destroying System!\n");
+	systemDestroy();
+
+	// MANUALLY RESTORE STATE (Ignoring whatever ACE missed/messed up)
+	// ACE uses LoadView() which waits for the OS, but the OS might be too slow
+	// causing our FreeMem to rip the Copper list out from under the hardware!
+	Disable();
+	custom->intena = 0x7FFF; // Disable all
+	custom->intreq = 0x7FFF; // Clear pending
+	custom->dmacon = 0x7FFF; // Disable all DMA
+
+	// Forcefully point the hardware back to the OS Copper lists INSTANTLY
+	custom->cop1lc = (ULONG)GfxBase->copinit;
+	custom->cop2lc = (ULONG)GfxBase->LOFlist;
+	custom->copjmp1 = 0x7fff;
+
+	custom->intena = SystemInts | 0x8000;
+	custom->dmacon = SystemDMA | 0x8000;
+	custom->adkcon = SystemADKCON | 0x8000;
+	Enable();
+
+	if (GfxBase)
+	{
+		KPrintF("free gfx library!\n");
+		CloseLibrary((struct Library *)GfxBase);
+	}
+
+	if (DOSBase)
+	{
+		KPrintF("free dos library!\n");
+		CloseLibrary((struct Library *)DOSBase);
+	}
+}
+
+int main()
+{
+	setupEnvironment();
 	// TODO: precalc stuff here
 #ifdef MUSIC
 	if (p61Init(module) != 0)
 		KPrintF("p61Init failed!\n");
 #endif
 	warpmode(0);
-
-	TakeSystem();
 	WaitVbl();
 
 	USHORT *copper1 = (USHORT *)AllocMem(1024, MEMF_CHIP);
@@ -144,29 +188,37 @@ int main()
 	custom->cop2lc = (ULONG)copper2;
 	custom->dmacon = DMAF_BLITTER; // disable blitter dma for copjmp bug
 	custom->copjmp1 = 0x7fff;	   // start coppper
-	custom->dmacon = DMAF_SETCLR | DMAF_MASTER | DMAF_RASTER | DMAF_COPPER | DMAF_BLITTER;
+
+	systemSetDmaMask(DMAF_MASTER | DMAF_RASTER | DMAF_COPPER | DMAF_BLITTER, 1); // Tell ACE to enable DMA
 
 	// DEMO
-	SetInterruptHandler((APTR)interruptHandler);
-	custom->intena = INTF_SETCLR | INTF_INTEN | INTF_VERTB;
-#ifdef MUSIC
-	custom->intena = INTF_SETCLR | INTF_EXTER; // ThePlayer needs INTF_EXTER
-#endif
-
-	custom->intreq = (1 << INTB_VERTB); // reset vbl req
+	systemSetInt(INTB_VERTB, vblankHandler, 0);
+	keyCreate();
 
 	while (!MouseLeft())
 	{
-		Wait10();
+		WaitVbl();
+		if (keyCheck(KEY_ESCAPE))
+			break;
+		keyProcess(); // Process pending keystrokes from the CIA interrupt buffer
 	}
+	KPrintF("Exit Loop!\n");
+	keyDestroy();
+
+	// Clean up custom interrupt before waking up the OS
+	// Otherwise the hardware will call it after the program has exited!
+	KPrintF("Reset Interrupt!\n");
+	systemSetInt(INTB_VERTB, 0, 0);
+	WaitVbl(); // Wait 1 frame to guarantee the handler is fully finished
+
+	KPrintF("Free Copper List!\n");
+	FreeMem(copper1, 1024);
 
 #ifdef MUSIC
-	p61End();
+	KPrintF("End Music!\n");
+	p61End(); // End the music player safely BEFORE waking up the OS!
 #endif
 
 	// END
-	FreeSystem();
-
-	CloseLibrary((struct Library *)DOSBase);
-	CloseLibrary((struct Library *)GfxBase);
+	teardownEnvironment();
 }
