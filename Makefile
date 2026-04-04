@@ -16,7 +16,7 @@ c_objects := $(addprefix obj/,$(patsubst %.c,%.o,$(notdir $(c_sources))))
 s_sources := support/gcc8_a_support.s support/depacker_doynax.s
 s_objects := $(addprefix obj/,$(patsubst %.s,%.o,$(notdir $(s_sources))))
 vasm_sources := $(wildcard *.asm) $(wildcard $(addsuffix *.asm, $(subdirs)))
-vasm_objects := $(addprefix obj/, $(patsubst %.asm,%.o,$(notdir $(vasm_sources))))
+vasm_objects := $(addprefix obj/,$(patsubst %.asm,%.o,$(notdir $(vasm_sources))))
 objects := $(cpp_objects) $(c_objects) $(s_objects) $(vasm_objects)
 
 # https://stackoverflow.com/questions/4036191/sources-from-subdirectories-in-makefile/4038459
@@ -30,8 +30,10 @@ VASM = vasmm68k_mot
 
 ifdef WINDOWS
 	SDKDIR = $(abspath $(dir $(shell where $(CC)))..\m68k-amiga-elf\sys-include)
+	MKDIR = mkdir "$(@D)" 2>nul
 else
 	SDKDIR = $(abspath $(dir $(shell which $(CC)))../m68k-amiga-elf/sys-include)
+	MKDIR = mkdir -p "$(@D)"
 endif
 
 CCFLAGS   = -g -MP -MMD -m68000 -Ofast -nostdlib -Wextra -Wno-unused-function -Wno-volatile-register-var -fomit-frame-pointer -fno-tree-loop-distribution -flto -fwhole-program -fno-exceptions -ffunction-sections -fdata-sections -I.
@@ -54,25 +56,30 @@ $(OUT).elf: $(objects)
 clean:
 	$(info Cleaning...)
 ifdef WINDOWS
-	@del /q obj\* out\*
+	@-rmdir /s /q obj 2>nul
+	@-rmdir /s /q out 2>nul
 else
-	@$(RM) obj/* out/*
+	@$(RM) -r obj out
 endif
 
 -include $(objects:.o=.d)
 
 $(cpp_objects) : obj/%.o : %.cpp
 	$(info Compiling $<)
+	@-$(MKDIR)
 	@$(CC) $(CPPFLAGS) -c -o $@ $(CURDIR)/$<
 
 $(c_objects) : obj/%.o : %.c
 	$(info Compiling $<)
+	@-$(MKDIR)
 	@$(CC) $(CCFLAGS) -c -o $@ $(CURDIR)/$<
 
 $(s_objects): obj/%.o : %.s
 	$(info Assembling $<)
+	@-$(MKDIR)
 	@$(AS) $(ASFLAGS) --MD $(@D)/$*.d -o $@ $(CURDIR)/$<
 
 $(vasm_objects): obj/%.o : %.asm
 	$(info Assembling $<)
+	@-$(MKDIR)
 	@$(VASM) $(VASMFLAGS) -dependall=make -depfile $(@D)/$*.d -o $@ $(CURDIR)/$<
