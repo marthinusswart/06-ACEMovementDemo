@@ -132,7 +132,9 @@ typedef struct tCpuCacheFlags
 
 static tCpuCacheFlags s_sCpuCacheFlags;
 
+#if !defined(VSCODE)
 struct GfxBase *GfxBase = 0;
+#endif
 struct View *s_pOsView;
 static const UWORD s_uwOsMinDma = DMAF_DISK | DMAF_BLITTER;
 static struct IOAudio s_sIoAudio = {0};
@@ -149,8 +151,10 @@ static UWORD s_uwOsVectorInts = (INTF_TBE | INTF_DSKBLK | INTF_SOFTINT |
 								 INTF_AUD0 | INTF_AUD1 | INTF_AUD2 | INTF_AUD3 | INTF_RBF | INTF_DSKSYNC);
 
 #if defined(BARTMAN_GCC)
+#if !defined(VSCODE)
 struct DosLibrary *DOSBase = 0;
 struct ExecBase *SysBase = 0;
+#endif
 static struct Message *s_pReturnMsg = 0;
 #else // Bebbo
 extern struct WBStartup *_WBenchMsg;
