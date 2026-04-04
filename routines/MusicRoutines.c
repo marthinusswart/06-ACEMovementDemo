@@ -6,7 +6,7 @@
 // The Player® 6.1A: Copyright © 1992-95 Jarno Paananen
 // P61.testmod - Module by Skylord/Sector 7
 INCBIN(player, "player610.6.no_cia.bin")
-INCBIN_CHIP(module, "testmod.p61")
+INCBIN_CHIP(module, "music/testmod.p61")
 
 int p61Init(const void *mod)
 { // returns 0 if success, non-zero otherwise
