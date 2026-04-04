@@ -278,17 +278,36 @@ int main()
 		WaitVbl();
 		if (keyCheck(KEY_ESCAPE))
 			break;
+		if (keyCheck(KEY_LEFT) || keyCheck(KEY_A))
+			pacman->movePacman(pacman, LEFT);
+		else if (keyCheck(KEY_RIGHT) || keyCheck(KEY_D))
+			pacman->movePacman(pacman, RIGHT);
+		else if (keyCheck(KEY_UP) || keyCheck(KEY_W))
+			pacman->movePacman(pacman, UP);
+		else if (keyCheck(KEY_DOWN) || keyCheck(KEY_S))
+			pacman->movePacman(pacman, DOWN);
 
 		// draw pacman
 		Sprite *currentSprite = pacman->getSprite(pacman, pacman->direction);
 		if (currentSprite)
 		{
-			// KPrintF("Blitting sprite\n");
-			blitCopyMask(
-				tPacmanTiles, currentSprite->x, currentSprite->y,
-				tScreenBuffer, pacman->x, pacman->y,
-				pacman->width, pacman->height,
-				(const UBYTE *)pacman_tiles_mask);
+			if (isValidSpriteLocation(pacman->x, pacman->y, currentSprite->width, currentSprite->height, 320, 256))
+			{
+				// Clear the previous location (assuming a solid black background)
+				blitRect(tScreenBuffer, pacman->prevX, pacman->prevY, pacman->width, pacman->height, 0);
+
+				// KPrintF("Blitting sprite\n");
+
+				blitCopyMask(
+					tPacmanTiles, currentSprite->x, currentSprite->y,
+					tScreenBuffer, pacman->x, pacman->y,
+					pacman->width, pacman->height,
+					(const UBYTE *)pacman_tiles_mask);
+			}
+			else
+			{
+				KPrintF("Invalid sprite location (%ld, %ld)!\n", currentSprite->x, currentSprite->y);
+			}
 		}
 
 		keyProcess(); // Process pending keystrokes from the CIA interrupt buffer

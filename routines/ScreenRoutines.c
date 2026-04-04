@@ -94,9 +94,14 @@ USHORT *screenScanDefault(USHORT *copListEnd)
 }
 
 // Calculates the X and Y pixel coordinates of a sprite within a tileset
-void calculateSpriteLocation(int row, int col, int sprite_width, int sprite_height, int tileset_width, int tileset_height, int *sprite_x, int *sprite_y)
+void calculateSpriteLocation(int row, int col, int spriteWidth, int spriteHeight, int tilesetWidth, int tilesetHeight, int *spriteX, int *spriteY)
 {
     // Multiply row/col by dimensions, and use modulo to safely wrap if out of bounds
-    *sprite_x = (col * sprite_width) % tileset_width;
-    *sprite_y = (row * sprite_height) % tileset_height;
+    *spriteX = (col * spriteWidth) % tilesetWidth;
+    *spriteY = (row * spriteHeight) % tilesetHeight;
+}
+
+BOOL isValidSpriteLocation(int x, int y, int spriteWidth, int spriteHeight, int screenWidth, int screenHeight)
+{
+    return (x >= 0) && (y >= 0) && (x + spriteWidth <= screenWidth) && (y + spriteHeight <= screenHeight);
 }
