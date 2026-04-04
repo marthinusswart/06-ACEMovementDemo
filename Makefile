@@ -7,16 +7,23 @@ ifdef OS
 	SHELL = cmd.exe
 endif
 
+# Recursive wildcard function for deep directories (like the ACE framework)
+rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(if $(wildcard $d/),$(call rwildcard,$d/,$2)))
+
 subdirs := $(wildcard */)
 VPATH = $(subdirs)
 cpp_sources := $(wildcard *.cpp) $(wildcard $(addsuffix *.cpp,$(subdirs)))
-cpp_objects := $(addprefix obj/,$(patsubst %.cpp,%.o,$(notdir $(cpp_sources))))
-c_sources := $(wildcard *.c) $(wildcard $(addsuffix *.c,$(subdirs)))
-c_objects := $(addprefix obj/,$(patsubst %.c,%.o,$(notdir $(c_sources))))
-s_sources := support/gcc8_a_support.s support/depacker_doynax.s
-s_objects := $(addprefix obj/,$(patsubst %.s,%.o,$(notdir $(s_sources))))
+c_sources := $(wildcard *.c) $(wildcard $(addsuffix *.c,$(subdirs))) $(call rwildcard,framework/ace/src/,*.c)
+s_sources := support/gcc8_a_support.s support/depacker_doynax.s $(call rwildcard,framework/ace/src/,*.s)
 vasm_sources := $(wildcard *.asm) $(wildcard $(addsuffix *.asm, $(subdirs)))
-vasm_objects := $(addprefix obj/,$(patsubst %.asm,%.o,$(notdir $(vasm_sources))))
+
+# Automatically set VPATH to all directories containing our discovered source files
+VPATH = $(sort $(dir $(cpp_sources) $(c_sources) $(s_sources) $(vasm_sources)))
+
+cpp_objects := $(sort $(addprefix obj/,$(patsubst %.cpp,%.o,$(notdir $(cpp_sources)))))
+c_objects := $(sort $(addprefix obj/,$(patsubst %.c,%.o,$(notdir $(c_sources)))))
+s_objects := $(sort $(addprefix obj/,$(patsubst %.s,%.o,$(notdir $(s_sources)))))
+vasm_objects := $(sort $(addprefix obj/,$(patsubst %.asm,%.o,$(notdir $(vasm_sources)))))
 objects := $(cpp_objects) $(c_objects) $(s_objects) $(vasm_objects)
 
 # https://stackoverflow.com/questions/4036191/sources-from-subdirectories-in-makefile/4038459
@@ -36,8 +43,8 @@ else
 	MKDIR = mkdir -p "$(@D)"
 endif
 
-CCFLAGS   = -g -MP -MMD -m68000 -Ofast -nostdlib -Wextra -Wno-unused-function -Wno-volatile-register-var -fomit-frame-pointer -fno-tree-loop-distribution -flto -fwhole-program -fno-exceptions -ffunction-sections -fdata-sections -I.
-CPPFLAGS  = $(CCFLAGS) -fno-rtti -fcoroutines -fno-use-cxa-atexit
+CCFLAGS   = -g -MP -MMD -m68000 -Ofast -nostdlib -Wextra -Wno-unused-function -Wno-volatile-register-var -fomit-frame-pointer -fno-tree-loop-distribution -flto -fwhole-program -fno-exceptions -ffunction-sections -fdata-sections -I. -Iframework/ace/include -Iframework/ace/include/mini_std -DAMIGA -DBARTMAN_GCC -DACE_SCROLLBUFFER_X_MARGIN_SIZE=1 -DACE_SCROLLBUFFER_Y_MARGIN_SIZE=1 -DVSCODE -DACE_TILEBUFFER_TILE_TYPE=UWORD
+CPPFLAGS  = $(CCFLAGS) -fno-rtti -fcoroutines -fno-use-cxa-atexit 
 ASFLAGS   = -mcpu=68000 -g --register-prefix-optional -I$(SDKDIR)
 LDFLAGS   = -Wl,--emit-relocs,--gc-sections,-Ttext=0,-Map=$(OUT).map
 VASMFLAGS = -m68000 -Felf -opt-fconst -nowarn=62 -dwarf=3 -quiet -x -I. -I$(SDKDIR)
