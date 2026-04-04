@@ -1,4 +1,7 @@
-#include "support/gcc8_c_support.h"
+#include <ace/managers/system.h>
+#include <ace/managers/key.h>
+#include <ace/utils/bitmap.h>
+#include <ace/managers/blit.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <proto/graphics.h>
@@ -9,13 +12,13 @@
 #include <hardware/custom.h>
 #include <hardware/dmabits.h>
 #include <hardware/intbits.h>
+#include "support/gcc8_c_support.h"
 #include "routines/ScreenRoutines.h"
 #include "routines/SystemRoutines.h"
 #include "routines/MouseRoutines.h"
 #include "routines/MusicRoutines.h"
 #include "routines/CopperRoutines.h"
-#include <ace/managers/system.h>
-#include <ace/managers/key.h>
+#include "pacman.h"
 
 // config
 #define MUSIC
@@ -24,6 +27,7 @@ struct ExecBase *SysBase;
 volatile struct Custom *custom;
 struct DosLibrary *DOSBase;
 struct GfxBase *GfxBase;
+Pacman *pacman;
 
 // backup
 UWORD SystemInts;
@@ -34,13 +38,14 @@ APTR SystemIrq;
 
 struct View *ActiView;
 
-#define BG_SIZE ((320 / 8) * 256 * 5) // 51,200 bytes
-UBYTE *screen_buffer = NULL;		  // Active display buffer
+tBitMap *tScreenBuffer = NULL;
+tBitMap *tPacmanTiles = NULL;
 
 // DEMO - INCBIN
 volatile short frameCounter = 0;
 INCBIN(colors, "pal/pacman_tiles.pal")
 INCBIN_CHIP(pacman_tiles, "bpl/pacman_tiles.bpl")
+INCBIN_CHIP(pacman_tiles_mask, "bpl/pacman_tiles_mask.bpl")
 
 // put copperlist into chip mem so we can use it without copying
 const UWORD copper2[] __attribute__((section(".MEMF_CHIP"))) = {
@@ -133,6 +138,11 @@ static void setupEnvironment(void)
 static void teardownEnvironment(void)
 {
 	KPrintF("Destroying System!\n");
+	if (tScreenBuffer)
+		bitmapDestroy(tScreenBuffer);
+	if (tPacmanTiles)
+		FreeMem(tPacmanTiles, sizeof(tBitMap));
+
 	systemDestroy();
 
 	// MANUALLY RESTORE STATE (Ignoring whatever ACE missed/messed up)
@@ -170,8 +180,17 @@ static USHORT *setupCopper(void)
 {
 	USHORT *copper1 = (USHORT *)AllocMem(1024, MEMF_CHIP);
 	USHORT *copPtr = copper1;
-	// Allocate the active screen buffer and copy the clean background into it
-	screen_buffer = (UBYTE *)AllocMem(BG_SIZE, MEMF_CHIP | MEMF_CLEAR); // Clear memory so it doesn't show garbage
+
+	// 1. Create PLANAR screen buffer safely using ACE (BMF_DISPLAYABLE forces CHIP RAM)
+	tScreenBuffer = bitmapCreate(320, 256, 5, BMF_CLEAR | BMF_DISPLAYABLE);
+
+	// 2. Wrap the INCBIN planar tile data directly in a tBitMap (no memory copy needed!)
+	tPacmanTiles = (tBitMap *)AllocMem(sizeof(tBitMap), MEMF_PUBLIC | MEMF_CLEAR);
+	InitBitMap((struct BitMap *)tPacmanTiles, 5, 320, 320); // Assumes tileset is 320x320
+	for (int p = 0; p < 5; p++)
+	{
+		tPacmanTiles->Planes[p] = (PLANEPTR)(pacman_tiles + p * (320 / 8) * 320);
+	}
 
 	copPtr = screenScanDefault(copPtr);
 
@@ -183,18 +202,18 @@ static USHORT *setupCopper(void)
 	*copPtr++ = offsetof(struct Custom, bplcon2); // playfied priority
 	*copPtr++ = 1 << 6;							  // 0x24;			//Sprites have priority over playfields
 
-	const USHORT lineSize = 320 / 8;
-
-	// set bitplane modulo
+	// set bitplane modulo for PLANAR
 	*copPtr++ = offsetof(struct Custom, bpl1mod); // odd planes   1,3,5
-	*copPtr++ = 4 * lineSize;
+	*copPtr++ = 0;
 	*copPtr++ = offsetof(struct Custom, bpl2mod); // even  planes 2,4
-	*copPtr++ = 4 * lineSize;
+	*copPtr++ = 0;
 
 	// set bitplane pointers
 	const UBYTE *planes[5];
 	for (int a = 0; a < 5; a++)
-		planes[a] = screen_buffer + lineSize * a;
+	{
+		planes[a] = tScreenBuffer->Planes[a];
+	}
 	copPtr = copSetPlanes(0, copPtr, planes, 5); // INJECT pointers into copper list!
 
 	// set colors
@@ -213,6 +232,26 @@ static USHORT *setupCopper(void)
 	return copper1;
 }
 
+static void setupPacman(void)
+{
+	int bobX = 0;
+	int bobY = 0;
+	KPrintF("Create Pacman!\n");
+	pacman = createPacman(208, 150, 16, 16);
+	calculateSpriteLocation(3, 9, 16, 16, 320, 320, &bobX, &bobY);
+	KPrintF("Created RIGHT sprite at (%ld, %ld)\n", bobX, bobY);
+	pacman->addSprite(pacman, RIGHT, bobX, bobY, 16, 16);
+	calculateSpriteLocation(3, 5, 16, 16, 320, 320, &bobX, &bobY);
+	KPrintF("Created DOWN sprite at (%ld, %ld)\n", bobX, bobY);
+	pacman->addSprite(pacman, DOWN, bobX, bobY, 16, 16);
+	calculateSpriteLocation(3, 7, 16, 16, 320, 320, &bobX, &bobY);
+	KPrintF("Created LEFT sprite at (%ld, %ld)\n", bobX, bobY);
+	pacman->addSprite(pacman, LEFT, bobX, bobY, 16, 16);
+	calculateSpriteLocation(3, 11, 16, 16, 320, 320, &bobX, &bobY);
+	KPrintF("Created UP sprite at (%ld, %ld)\n", bobX, bobY);
+	pacman->addSprite(pacman, UP, bobX, bobY, 16, 16);
+}
+
 int main()
 {
 	setupEnvironment();
@@ -226,6 +265,8 @@ int main()
 
 	USHORT *copper1 = setupCopper();
 
+	setupPacman();
+
 	systemSetDmaMask(DMAF_MASTER | DMAF_RASTER | DMAF_COPPER | DMAF_BLITTER, 1); // Tell ACE to enable DMA
 
 	// DEMO
@@ -237,6 +278,19 @@ int main()
 		WaitVbl();
 		if (keyCheck(KEY_ESCAPE))
 			break;
+
+		// draw pacman
+		Sprite *currentSprite = pacman->getSprite(pacman, pacman->direction);
+		if (currentSprite)
+		{
+			// KPrintF("Blitting sprite\n");
+			blitCopyMask(
+				tPacmanTiles, currentSprite->x, currentSprite->y,
+				tScreenBuffer, pacman->x, pacman->y,
+				pacman->width, pacman->height,
+				(const UBYTE *)pacman_tiles_mask);
+		}
+
 		keyProcess(); // Process pending keystrokes from the CIA interrupt buffer
 	}
 	KPrintF("Exit Loop!\n");
