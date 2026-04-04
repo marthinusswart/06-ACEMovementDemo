@@ -18,7 +18,7 @@
 #include "routines/MouseRoutines.h"
 #include "routines/MusicRoutines.h"
 #include "routines/CopperRoutines.h"
-#include "pacman.h"
+#include "player/pacman.h"
 
 // config
 #define MUSIC
@@ -291,23 +291,13 @@ int main()
 		Sprite *currentSprite = pacman->getSprite(pacman, pacman->direction);
 		if (currentSprite)
 		{
-			if (isValidSpriteLocation(pacman->x, pacman->y, currentSprite->width, currentSprite->height, 320, 256))
-			{
-				// Clear the previous location (assuming a solid black background)
-				blitRect(tScreenBuffer, pacman->prevX, pacman->prevY, pacman->width, pacman->height, 0);
+			blitRect(tScreenBuffer, pacman->prevX, pacman->prevY, pacman->width, pacman->height, 0);
 
-				// KPrintF("Blitting sprite\n");
-
-				blitCopyMask(
-					tPacmanTiles, currentSprite->x, currentSprite->y,
-					tScreenBuffer, pacman->x, pacman->y,
-					pacman->width, pacman->height,
-					(const UBYTE *)pacman_tiles_mask);
-			}
-			else
-			{
-				KPrintF("Invalid sprite location (%ld, %ld)!\n", currentSprite->x, currentSprite->y);
-			}
+			blitCopyMask(
+				tPacmanTiles,
+				currentSprite->x, currentSprite->y, tScreenBuffer,
+				pacman->x, pacman->y, pacman->width, pacman->height,
+				(const UBYTE *)pacman_tiles_mask);
 		}
 
 		keyProcess(); // Process pending keystrokes from the CIA interrupt buffer

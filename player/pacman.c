@@ -46,6 +46,13 @@ static void movePacman(Pacman *p, Direction direction)
     default:
         break;
     }
+
+    if (!isValidSpriteLocation(p->x, p->y, p->width, p->height, 320, 256))
+    {
+        // Invalid location, revert to previous position
+        p->x = p->prevX;
+        p->y = p->prevY;
+    }
 }
 
 static void addSprite(Pacman *p, Direction direction, int spriteX, int spriteY, int width, int height)

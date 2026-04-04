@@ -6,6 +6,7 @@
 #include <exec/types.h>
 #include <hardware/custom.h>
 #include "support/gcc8_c_support.h"
+#include "routines/ScreenRoutines.h"
 
 typedef enum
 {
