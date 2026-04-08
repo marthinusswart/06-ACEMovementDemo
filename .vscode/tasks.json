@@ -46,6 +46,46 @@
             }
         },
         {
+            "label": "compile-ace",
+            "type": "shell",
+            "windows": {
+                "command": "${command:amiga.bin-path}\\gnumake.exe",
+                "options": {
+                    "cwd": "${workspaceRoot}",
+                    "env": {
+                        "PATH": "${env:PATH};${command:amiga.bin-path}\\opt\\bin;${command:amiga.bin-path}"
+                    }
+                },
+            },
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceRoot}",
+                "env": {
+                    "PATH": "${env:PATH}:${command:amiga.bin-path}/opt/bin:${command:amiga.bin-path}"
+                }
+            },
+            "args": [
+                "-j4",
+                "program=${config:amiga.program}",
+                "USE_ACE_MAIN=1"
+            ],
+            "problemMatcher": [
+                {
+                    "base": "$gcc",
+                    "fileLocation": "absolute"
+                }
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "group": "build"
+        },
+        {
             "label": "clean",
             "type": "shell",
             "windows": {
