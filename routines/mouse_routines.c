@@ -1,4 +1,4 @@
-#include "MouseRoutines.h"
+#include "mouse_routines.h"
 #include <exec/types.h>
 
 short MouseLeft() { return !((*(volatile UBYTE *)0xbfe001) & 64); }

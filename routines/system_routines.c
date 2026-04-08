@@ -1,5 +1,5 @@
-#include "SystemRoutines.h"
-#include "ScreenRoutines.h"
+#include "system_routines.h"
+#include "screen_routines.h"
 #include <proto/exec.h>
 #include <proto/graphics.h>
 #include <graphics/gfxbase.h>

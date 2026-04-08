@@ -53,10 +53,12 @@ all: $(OUT).exe
 
 $(OUT).exe: $(OUT).elf
 	$(info Elf2Hunk $(program).exe)
+	@-$(MKDIR)
 	@elf2hunk $(OUT).elf $(OUT).exe
 
 $(OUT).elf: $(objects)
 	$(info Linking $(program).elf)
+	@-$(MKDIR)
 	@$(CC) $(CCFLAGS) $(LDFLAGS) $(objects) -o $@
 	@m68k-amiga-elf-objdump --disassemble --no-show-raw-ins --visualize-jumps -S $@ >$(OUT).s
 

@@ -1,4 +1,4 @@
-#include "ScreenRoutines.h"
+#include "screen_routines.h"
 #include <proto/exec.h>
 #include <exec/execbase.h>
 #include <hardware/custom.h>

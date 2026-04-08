@@ -13,11 +13,11 @@
 #include <hardware/dmabits.h>
 #include <hardware/intbits.h>
 #include "support/gcc8_c_support.h"
-#include "routines/ScreenRoutines.h"
-#include "routines/SystemRoutines.h"
-#include "routines/MouseRoutines.h"
-#include "routines/MusicRoutines.h"
-#include "routines/CopperRoutines.h"
+#include "routines/screen_routines.h"
+#include "routines/system_routines.h"
+#include "routines/mouse_routines.h"
+#include "routines/music_routines.h"
+#include "routines/copper_routines.h"
 #include "player/pacman.h"
 
 // config
