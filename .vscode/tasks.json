@@ -13,7 +13,7 @@
                     "env": {
                         "PATH": "${env:PATH};${command:amiga.bin-path}\\opt\\bin;${command:amiga.bin-path}"
                     }
-                },
+                }
             },
             "command": "make",
             "options": {
@@ -24,7 +24,7 @@
             },
             "args": [
                 "-j4",
-                "program=${config:amiga.program}",
+                "program=${config:amiga.program}"
             ],
             "problemMatcher": [
                 {
@@ -40,10 +40,7 @@
                 "showReuseMessage": false,
                 "clear": true
             },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "build"
         },
         {
             "label": "compile-ace",
@@ -55,7 +52,7 @@
                     "env": {
                         "PATH": "${env:PATH};${command:amiga.bin-path}\\opt\\bin;${command:amiga.bin-path}"
                     }
-                },
+                }
             },
             "command": "make",
             "options": {
@@ -83,7 +80,10 @@
                 "showReuseMessage": false,
                 "clear": true
             },
-            "group": "build"
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
             "label": "clean",

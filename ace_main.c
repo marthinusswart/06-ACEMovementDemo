@@ -9,7 +9,13 @@
 #include <ace/managers/viewport/simplebuffer.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
+#include <proto/graphics.h>
 #include "support/gcc8_c_support.h"
+
+// Library bases - ACE framework initializes these
+struct ExecBase *SysBase;
+struct DosLibrary *DOSBase;
+struct GfxBase *GfxBase;
 #include "routines/screen_routines.h"
 #include "player/pacman.h"
 
@@ -75,28 +81,22 @@ void genericCreate(void)
 {
 	KPrintF("ACE Main - Starting...\n");
 
-	// Create view with global CLUT
+	// Create view with global palette
 	g_pView = viewCreate(0,
-		TAG_VIEW_GLOBAL_CLUT, 1,
-		TAG_DONE
-	);
-
-	// Disable sprites (we're using blitter for Pacman)
-	copBlockDisableSprites(g_pView->pCopList, 0xFF);
+						 TAG_VIEW_GLOBAL_PALETTE, 1,
+						 TAG_DONE);
 
 	// Create viewport
 	g_pVPort = vPortCreate(0,
-		TAG_VPORT_VIEW, g_pView,
-		TAG_VPORT_BPP, 5,
-		TAG_DONE
-	);
+						   TAG_VPORT_VIEW, g_pView,
+						   TAG_VPORT_BPP, 5,
+						   TAG_DONE);
 
 	// Create simple buffer manager
 	g_pBufferManager = simpleBufferCreate(0,
-		TAG_SIMPLEBUFFER_VPORT, g_pVPort,
-		TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
-		TAG_DONE
-	);
+										  TAG_SIMPLEBUFFER_VPORT, g_pVPort,
+										  TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
+										  TAG_DONE);
 
 	// Load palette from INCBIN data
 	paletteDim((UWORD *)colors, g_pVPort->pPalette, 32, 0);
@@ -128,6 +128,7 @@ void genericProcess(void)
 
 	if (keyCheck(KEY_ESCAPE))
 	{
+		KPrintF("ACE Main - Exiting!\n");
 		gameExit();
 		return;
 	}
