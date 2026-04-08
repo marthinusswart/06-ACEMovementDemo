@@ -12,6 +12,16 @@
 #include <proto/graphics.h>
 #include "support/gcc8_c_support.h"
 
+// Debug logging macro
+// Comment out the next line to disable debug logging
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_LOG(...) KPrintF(__VA_ARGS__)
+#else
+#define DEBUG_LOG(...) ((void)0)
+#endif
+
 // Library bases - ACE framework initializes these
 struct ExecBase *SysBase;
 struct DosLibrary *DOSBase;
@@ -61,25 +71,25 @@ static void setupPacman(void)
 {
 	int bobX = 0;
 	int bobY = 0;
-	KPrintF("Create Pacman!\n");
+	DEBUG_LOG("Create Pacman!\n");
 	pacman = createPacman(208, 150, 16, 16);
 	calculateSpriteLocation(3, 9, 16, 16, 320, 320, &bobX, &bobY);
-	KPrintF("Created RIGHT sprite at (%ld, %ld)\n", bobX, bobY);
+	DEBUG_LOG("Created RIGHT sprite at (%ld, %ld)\n", bobX, bobY);
 	pacman->addSprite(pacman, RIGHT, bobX, bobY, 16, 16);
 	calculateSpriteLocation(3, 5, 16, 16, 320, 320, &bobX, &bobY);
-	KPrintF("Created DOWN sprite at (%ld, %ld)\n", bobX, bobY);
+	DEBUG_LOG("Created DOWN sprite at (%ld, %ld)\n", bobX, bobY);
 	pacman->addSprite(pacman, DOWN, bobX, bobY, 16, 16);
 	calculateSpriteLocation(3, 7, 16, 16, 320, 320, &bobX, &bobY);
-	KPrintF("Created LEFT sprite at (%ld, %ld)\n", bobX, bobY);
+	DEBUG_LOG("Created LEFT sprite at (%ld, %ld)\n", bobX, bobY);
 	pacman->addSprite(pacman, LEFT, bobX, bobY, 16, 16);
 	calculateSpriteLocation(3, 11, 16, 16, 320, 320, &bobX, &bobY);
-	KPrintF("Created UP sprite at (%ld, %ld)\n", bobX, bobY);
+	DEBUG_LOG("Created UP sprite at (%ld, %ld)\n", bobX, bobY);
 	pacman->addSprite(pacman, UP, bobX, bobY, 16, 16);
 }
 
 void genericCreate(void)
 {
-	KPrintF("ACE Main - Starting...\n");
+	DEBUG_LOG("ACE Main - Starting...\n");
 
 	// Create view with global palette
 	g_pView = viewCreate(0, TAG_VIEW_GLOBAL_PALETTE, 1, TAG_DONE);
@@ -106,13 +116,16 @@ void genericCreate(void)
 	// Initialize music if enabled
 #ifdef MUSIC
 	if (p61Init(module) != 0)
-		KPrintF("p61Init failed!\n");
+		DEBUG_LOG("p61Init failed!\n");
 #endif
+
+	// Initialize keyboard manager
+	keyCreate();
 
 	// Setup custom VBlank handler
 	systemSetInt(INTB_VERTB, (tAceIntHandler)vblankHandler, 0);
 
-	KPrintF("ACE Main - Ready!\n");
+	DEBUG_LOG("ACE Main - Ready!\n");
 }
 
 void genericProcess(void)
@@ -121,7 +134,7 @@ void genericProcess(void)
 
 	if (keyCheck(KEY_ESCAPE))
 	{
-		KPrintF("ACE Main - Exiting!\n");
+		DEBUG_LOG("ACE Main - Exiting!\n");
 		gameExit();
 		return;
 	}
@@ -163,21 +176,32 @@ void genericProcess(void)
 
 void genericDestroy(void)
 {
-	KPrintF("ACE Main - Cleanup...\n");
+	DEBUG_LOG("ACE Main - Cleanup...\n");
 
-	// Clean up custom interrupt
+	// Unload the view first to stop copper DMA
+	viewLoad(0);
+
+	// Restore OS control - this is critical!
+	systemUse();
+
+	// Clean up keyboard manager
+	keyDestroy();
+
+	// Clean up custom interrupt and wait
 	systemSetInt(INTB_VERTB, 0, 0);
 	WaitVbl();
 
 #ifdef MUSIC
-	KPrintF("End Music!\n");
+	DEBUG_LOG("End Music!\n");
 	p61End();
 #endif
 
+	// Free custom resources
 	if (tPacmanTiles)
 		FreeMem(tPacmanTiles, sizeof(tBitMap));
 
+	// Destroy view (now that it's unloaded)
 	viewDestroy(g_pView);
 
-	KPrintF("ACE Main - Done!\n");
+	DEBUG_LOG("ACE Main - Done!\n");
 }

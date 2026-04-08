@@ -71,3 +71,7 @@ A few minor tweaks were made to the ACE framework source files and local support
 #define offsetof(st, m) __builtin_offsetof(st, m)
 #endif
 ```
+
+# Additional Info on Guthub
+
+https://github.com/AmigaPorts/ACE/blob/main/README.md
