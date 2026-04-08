@@ -82,21 +82,14 @@ void genericCreate(void)
 	KPrintF("ACE Main - Starting...\n");
 
 	// Create view with global palette
-	g_pView = viewCreate(0,
-						 TAG_VIEW_GLOBAL_PALETTE, 1,
-						 TAG_DONE);
+	g_pView = viewCreate(0, TAG_VIEW_GLOBAL_PALETTE, 1, TAG_DONE);
 
 	// Create viewport
-	g_pVPort = vPortCreate(0,
-						   TAG_VPORT_VIEW, g_pView,
-						   TAG_VPORT_BPP, 5,
-						   TAG_DONE);
+	g_pVPort = vPortCreate(0, TAG_VPORT_VIEW, g_pView, TAG_VPORT_BPP, 5, TAG_DONE);
 
 	// Create simple buffer manager
-	g_pBufferManager = simpleBufferCreate(0,
-										  TAG_SIMPLEBUFFER_VPORT, g_pVPort,
-										  TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR,
-										  TAG_DONE);
+	g_pBufferManager =
+		simpleBufferCreate(0, TAG_SIMPLEBUFFER_VPORT, g_pVPort, TAG_SIMPLEBUFFER_BITMAP_FLAGS, BMF_CLEAR, TAG_DONE);
 
 	// Load palette from INCBIN data
 	paletteDim((UWORD *)colors, g_pVPort->pPalette, 32, 0);
