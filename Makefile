@@ -2,6 +2,9 @@
 # for better annotations add -dA -dP
 # to generate assembler source with LTO, add to LDFLAGS: -save-temps=cwd
 
+# Set USE_ACE_MAIN=1 to compile with ace_main.c, default is main.c
+USE_ACE_MAIN ?= 0
+
 ifdef OS
 	WINDOWS = 1
 	SHELL = cmd.exe
@@ -12,8 +15,18 @@ rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(if $(wildcard $d/),$(ca
 
 subdirs := $(wildcard */)
 VPATH = $(subdirs)
+
+# Select which main file to use based on USE_ACE_MAIN flag
+ifeq ($(USE_ACE_MAIN),1)
+    MAIN_SOURCE = ace_main.c
+    EXCLUDED_MAIN = main.c
+else
+    MAIN_SOURCE = main.c
+    EXCLUDED_MAIN = ace_main.c
+endif
+
 cpp_sources := $(wildcard *.cpp) $(wildcard $(addsuffix *.cpp,$(subdirs)))
-c_sources := $(wildcard *.c) $(wildcard $(addsuffix *.c,$(subdirs))) $(call rwildcard,framework/ace/src/,*.c)
+c_sources := $(filter-out $(EXCLUDED_MAIN),$(wildcard *.c) $(wildcard $(addsuffix *.c,$(subdirs)))) $(call rwildcard,framework/ace/src/,*.c)
 s_sources := support/gcc8_a_support.s support/depacker_doynax.s $(call rwildcard,framework/ace/src/,*.s)
 vasm_sources := $(wildcard *.asm) $(wildcard $(addsuffix *.asm, $(subdirs)))
 
@@ -49,14 +62,18 @@ ASFLAGS   = -mcpu=68000 -g --register-prefix-optional -I$(SDKDIR)
 LDFLAGS   = -Wl,--emit-relocs,--gc-sections,-Ttext=0,-Map=$(OUT).map
 VASMFLAGS = -m68000 -Felf -opt-fconst -nowarn=62 -dwarf=3 -quiet -x -I. -I$(SDKDIR)
 
-all: $(OUT).exe
+all:
+	$(info Building with $(MAIN_SOURCE))
+	@$(MAKE) $(OUT).exe --no-print-directory
 
 $(OUT).exe: $(OUT).elf
 	$(info Elf2Hunk $(program).exe)
+	@-$(MKDIR)
 	@elf2hunk $(OUT).elf $(OUT).exe
 
 $(OUT).elf: $(objects)
 	$(info Linking $(program).elf)
+	@-$(MKDIR)
 	@$(CC) $(CCFLAGS) $(LDFLAGS) $(objects) -o $@
 	@m68k-amiga-elf-objdump --disassemble --no-show-raw-ins --visualize-jumps -S $@ >$(OUT).s
 

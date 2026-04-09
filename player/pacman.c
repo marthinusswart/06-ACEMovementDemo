@@ -1,6 +1,9 @@
 #include "pacman.h"
 #include <proto/exec.h>
 
+// Library base - ACE framework initializes this
+extern struct ExecBase *SysBase;
+
 INCBIN_CHIP(pacman_tiles2, "bpl/pacman_tiles.bpl")
 
 // Private forward declaration

@@ -39,6 +39,26 @@
             "program": "${workspaceFolder}/${config:amiga.program}",
             "kickstart": "${config:amiga.rom-paths.A4000}",
             "internalConsoleOptions": "openOnSessionStart"
-        }        
+        },
+        {
+            "type": "amiga",
+            "request": "launch",
+            "preLaunchTask": "compile-ace",
+            "name": "Amiga 500 (ACE)",
+            "config": "A500",
+            "program": "${workspaceFolder}/${config:amiga.program}",
+            "kickstart": "${config:amiga.rom-paths.A500}",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "amiga",
+            "request": "launch",
+            "preLaunchTask": "compile-ace",
+            "name": "Amiga 1200 (ACE)",
+            "config": "A1200",
+            "program": "${workspaceFolder}/${config:amiga.program}",
+            "kickstart": "${config:amiga.rom-paths.A1200}",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
     ]
 }

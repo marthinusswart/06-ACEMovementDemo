@@ -13,11 +13,11 @@
 #include <hardware/dmabits.h>
 #include <hardware/intbits.h>
 #include "support/gcc8_c_support.h"
-#include "routines/ScreenRoutines.h"
-#include "routines/SystemRoutines.h"
-#include "routines/MouseRoutines.h"
-#include "routines/MusicRoutines.h"
-#include "routines/CopperRoutines.h"
+#include "routines/screen_routines.h"
+#include "routines/system_routines.h"
+#include "routines/mouse_routines.h"
+#include "routines/music_routines.h"
+#include "routines/copper_routines.h"
 #include "player/pacman.h"
 
 // config
@@ -78,26 +78,6 @@ static void vblankHandler(volatile struct Custom *pCustom, volatile void *pData)
 	frameCounter++;
 }
 
-#ifdef __cplusplus
-class TestClass
-{
-public:
-	TestClass(int y)
-	{
-		static int x = 7;
-		i = y + x;
-	}
-	~TestClass()
-	{
-		KPrintF("~TestClass()");
-	}
-
-	int i;
-};
-
-TestClass staticClass(4);
-#endif
-
 static void Wait10() { WaitLine(0x10); }
 static void Wait11() { WaitLine(0x11); }
 static void Wait12() { WaitLine(0x12); }
@@ -111,11 +91,7 @@ static void setupEnvironment(void)
 	DOSBase = (struct DosLibrary *)OpenLibrary((CONST_STRPTR) "dos.library", 0);
 	GfxBase = (struct GfxBase *)OpenLibrary((CONST_STRPTR) "graphics.library", 0);
 
-#ifdef __cplusplus
-	KPrintF("Hello debugger from Amiga: %ld!\n", staticClass.i);
-#else
 	KPrintF("Hello debugger from Amiga!\n");
-#endif
 
 	if (DOSBase)
 	{
