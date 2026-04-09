@@ -40,7 +40,10 @@
                 "showReuseMessage": false,
                 "clear": true
             },
-            "group": "build"
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
             "label": "compile-ace",
@@ -80,10 +83,7 @@
                 "showReuseMessage": false,
                 "clear": true
             },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "build"
         },
         {
             "label": "clean",

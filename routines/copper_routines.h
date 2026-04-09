@@ -1,11 +1,14 @@
-#ifndef COPPERROUTINES_H
-#define COPPERROUTINES_H
+#ifndef COPPER_ROUTINES_H
+#define COPPER_ROUTINES_H
 
 #include <exec/types.h>
+#include <ace/utils/bitmap.h>
+#include <hardware/custom.h>
 
-USHORT *copSetPlanes(UBYTE bplPtrStart, USHORT *copListEnd, const UBYTE **planes, int numPlanes);
-USHORT *copWaitXY(USHORT *copListEnd, USHORT x, USHORT i);
-USHORT *copWaitY(USHORT *copListEnd, USHORT i);
-USHORT *copSetColor(USHORT *copListCurrent, USHORT index, USHORT color);
+short copSetPlanes(UBYTE bplPtrStart, USHORT **copListEnd_out, const UBYTE **planes, int numPlanes);
+short copSetColor(USHORT **copListCurrent_out, USHORT index, USHORT color);
+int copperListCreate(USHORT **copper_out, tBitMap *screenBuffer,
+                     volatile struct Custom *customPtr, const USHORT *colorPalette,
+                     USHORT **bplPtrsOut);
 
-#endif // COPPERROUTINES_H
+#endif // COPPER_ROUTINES_H

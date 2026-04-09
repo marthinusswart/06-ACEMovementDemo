@@ -168,7 +168,12 @@ static USHORT *setupCopper(void)
 		tPacmanTiles->Planes[p] = (PLANEPTR)(pacman_tiles + p * (320 / 8) * 320);
 	}
 
-	copPtr = screenScanDefault(copPtr);
+	if (screenScanDefault(&copPtr) != 0)
+	{
+		logWrite("ERROR: screenScanDefault failed\n");
+		FreeMem(copper1, 1024);
+		return NULL;
+	}
 
 	// enable bitplanes
 	*copPtr++ = offsetof(struct Custom, bplcon0);
@@ -190,11 +195,23 @@ static USHORT *setupCopper(void)
 	{
 		planes[a] = tScreenBuffer->Planes[a];
 	}
-	copPtr = copSetPlanes(0, copPtr, planes, 5); // INJECT pointers into copper list!
+	if (copSetPlanes(0, &copPtr, planes, 5) != 0) // INJECT pointers into copper list!
+	{
+		logWrite("ERROR: copSetPlanes failed\n");
+		FreeMem(copper1, 1024);
+		return NULL;
+	}
 
 	// set colors
 	for (int a = 0; a < 32; a++)
-		copPtr = copSetColor(copPtr, a, ((USHORT *)colors)[a]);
+	{
+		if (copSetColor(&copPtr, a, ((USHORT *)colors)[a]) != 0)
+		{
+			logWrite("ERROR: copSetColor failed\n");
+			FreeMem(copper1, 1024);
+			return NULL;
+		}
+	}
 
 	// jump to copper2
 	*copPtr++ = offsetof(struct Custom, copjmp2);
